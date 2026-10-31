@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SentinelNIDS</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside class="side">
+  <div class="brand"><span class="logo">S</span> SentinelNIDS</div>
+  <nav id="nav">
+    <button data-view="overview" class="on">Overview</button>
+    <button data-view="alerts">Live Alerts</button>
+    <button data-view="investigate">Threat Investigation</button>
+    <button data-view="analytics">Analytics</button>
+    <button data-view="reports">Incident Reports</button>
+  </nav>
+  <div class="side-foot">
+    <div id="health" class="health"><span class="dot"></span><span id="health-text">Checking…</span></div>
+    <div class="muted small">IDS mode: detection only.<br>Nothing is blocked.</div>
+  </div>
+</aside>
+
+<main>
+  <header class="top">
+    <h1 id="title">Overview</h1>
+    <div class="top-r">
+      <span id="origin" class="badge" hidden></span>
+      <label class="live"><input type="checkbox" id="live" checked> Auto-refresh</label>
+    </div>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+
+  <!-- OVERVIEW -->
+  <section id="v-overview" class="view">
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <div class="card"><h2>Most targeted destination ports</h2><div id="ports"></div></div>
+      <div class="card"><h2>Investigation cases</h2><div id="ov-cases"></div></div>
+    </div>
+    <p class="note"><b>IDS alert</b> = a Suricata rule matched (rule-defined severity). <b>Risk score</b> = SentinelNIDS's own heuristic for triage priority, shown separately and never a confirmed verdict.</p>
+  </section>
+
+  <!-- LIVE ALERTS -->
+  <section id="v-alerts" class="view" hidden>
+    <div class="filters">
+      <select id="f-sev"><option value="">All severities</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+      <select id="f-status"><option value="">All statuses</option><option>Open</option><option>Investigating</option><option>Resolved</option></select>
+      <input id="f-q" type="search" placeholder="Search signature or IP…">
+      <span class="muted small" id="alert-count"></span>
+    </div>
+    <div class="card flush"><div class="tw"><table id="alert-table">
+      <thead><tr><th>Timestamp</th><th>Severity</th><th>Alert signature</th><th>Source</th><th>Destination</th><th>Proto</th><th title="Calculated by SentinelNIDS, not an IDS verdict">Risk (calc.)</th><th>Status</th></tr></thead>
+      <tbody></tbody></table></div></div>
+  </section>
+
+  <!-- INVESTIGATION -->
+  <section id="v-investigate" class="view" hidden>
+    <div class="filters"><label for="pick">Select an alert</label><select id="pick" class="wide"></select></div>
+    <div id="inv-empty" class="card muted">No alerts to investigate yet.</div>
+    <div id="inv" hidden>
+      <div class="grid2">
+        <div class="card"><h2>Event details <span class="tag">from Suricata</span></h2><dl id="inv-details" class="dl"></dl>
+          <details><summary>Raw EVE JSON</summary><pre id="inv-raw"></pre></details></div>
+        <div class="card"><h2>Calculated risk <span class="tag warn">SentinelNIDS heuristic</span></h2><div id="inv-risk"></div></div>
+      </div>
+      <div class="card"><h2>Detection rule</h2><div id="inv-rule"></div></div>
+      <div class="card"><h2>Related events (same source, ±5 min)</h2><div class="tw cap"><table id="inv-related"><thead><tr><th>Time</th><th>Type</th><th>Source</th><th>Destination</th><th>Proto</th><th>Summary</th></tr></thead><tbody></tbody></table></div></div>
+      <div class="grid2">
+        <div class="card"><h2>Packet capture</h2><div id="inv-pcap"></div></div>
+        <div class="card"><h2>Investigation notes</h2>
+          <div class="row"><label>Status</label><select id="inv-status"><option>Open</option><option>Investigating</option><option>Resolved</option></select></div>
+          <div id="inv-notes"></div>
+          <textarea id="inv-note-text" rows="3" placeholder="Record what you checked and concluded…"></textarea>
+          <button class="btn" id="inv-note-save">Add note</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section id="v-analytics" class="view" hidden>
+    <div class="grid2">
+      <div class="card"><h2>Alerts over time <span class="tag" id="bucket"></span></h2><div class="chart"><canvas id="c-time"></canvas></div></div>
+      <div class="card"><h2>Top source IPs (by alert count)</h2><div class="chart"><canvas id="c-src"></canvas></div></div>
+      <div class="card"><h2>Protocol distribution (events)</h2><div class="chart"><canvas id="c-proto"></canvas></div></div>
+      <div class="card"><h2>Alert categories</h2><div class="chart"><canvas id="c-cat"></canvas></div></div>
+    </div>
+    <details class="card"><summary>View as table</summary><div id="an-tables"></div></details>
+  </section>
+
+  <!-- INCIDENT REPORTS -->
+  <section id="v-reports" class="view" hidden>
+    <div class="reports">
+      <div class="card flush case-list"><div id="case-list"></div></div>
+      <div class="card" id="report"><p class="muted">Select a case.</p></div>
+    </div>
+  </section>
+</main>
+<script src="vendor/chart.umd.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

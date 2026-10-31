@@ -1,0 +1,30 @@
+# SentinelNIDS custom rules  (SID range 9000000-9000099 = local/lab)
+# Priority -> dashboard severity: 1=Critical 2=High 3=Medium 4=Low
+# Thresholds are LAB CONFIGURATION values chosen for a small isolated network,
+# not universal security standards. Tune for your own environment.
+# $HOME_NET is set in config/suricata.yaml.
+
+# ---------- Scenario 1: Port scan detection ----------
+alert tcp any any -> $HOME_NET any (msg:"SENTINEL SCAN TCP SYN scan - 20+ SYNs in 5s from one source"; flags:S,12; threshold:type both, track by_src, count 20, seconds 5; classtype:attempted-recon; priority:2; sid:9000001; rev:1; metadata:created_by sentinel, scenario scan;)
+alert tcp any any -> $HOME_NET any (msg:"SENTINEL SCAN TCP NULL scan (no flags set)"; flags:0; threshold:type both, track by_src, count 5, seconds 10; classtype:attempted-recon; priority:2; sid:9000002; rev:1; metadata:created_by sentinel, scenario scan;)
+alert tcp any any -> $HOME_NET any (msg:"SENTINEL SCAN TCP XMAS scan (FIN+PSH+URG)"; flags:FPU,12; threshold:type both, track by_src, count 5, seconds 10; classtype:attempted-recon; priority:2; sid:9000003; rev:1; metadata:created_by sentinel, scenario scan;)
+alert tcp any any -> $HOME_NET any (msg:"SENTINEL SCAN TCP FIN scan (FIN only)"; flags:F,12; threshold:type both, track by_src, count 5, seconds 10; classtype:attempted-recon; priority:3; sid:9000004; rev:1; metadata:created_by sentinel, scenario scan;)
+
+# ---------- Scenario 2: Repeated connection attempts ----------
+# Detects connection RATE only. It cannot tell a brute-force from a busy client.
+alert tcp any any -> $HOME_NET 2222 (msg:"SENTINEL REPEAT 8+ connection attempts to lab service tcp/2222 in 30s"; flags:S,12; threshold:type both, track by_src, count 8, seconds 30; classtype:attempted-recon; priority:3; sid:9000010; rev:1; metadata:created_by sentinel, scenario repeat;)
+alert tcp any any -> $HOME_NET 22 (msg:"SENTINEL REPEAT 5+ SSH connection attempts in 60s (rate only, not proof of brute force)"; flags:S,12; threshold:type both, track by_src, count 5, seconds 60; classtype:attempted-admin; priority:2; sid:9000011; rev:1; metadata:created_by sentinel, scenario repeat;)
+
+# ---------- Scenario 3: Suspicious DNS (each rule states WHY it is suspicious) ----------
+# 9000020: very long query names are a common tunnelling/DGA indicator. Legit names are rarely >= 50 bytes.
+alert dns any any -> any any (msg:"SENTINEL DNS Query name >= 50 bytes (possible tunnelling indicator)"; flow:to_server; dns.query; bsize:>49; classtype:bad-unknown; priority:3; sid:9000020; rev:1; metadata:created_by sentinel, scenario dns;)
+# 9000021: simulated lab blocklist. Stands in for a threat-intel feed. .test is reserved (RFC 2606), never resolves publicly.
+alert dns any any -> any any (msg:"SENTINEL DNS Query to lab blocklist zone c2-sim.lab.test (simulated threat intel)"; flow:to_server; dns.query; content:".c2-sim.lab.test"; endswith; nocase; classtype:trojan-activity; priority:1; sid:9000021; rev:1; metadata:created_by sentinel, scenario dns;)
+# 9000022: query burst. Normal browsing rarely exceeds a few queries/second from one host.
+alert dns any any -> any any (msg:"SENTINEL DNS Burst of 25+ queries in 10s from one source"; flow:to_server; dns.query; content:"."; threshold:type both, track by_src, count 25, seconds 10; classtype:bad-unknown; priority:3; sid:9000022; rev:1; metadata:created_by sentinel, scenario dns;)
+
+# ---------- ICMP / HTTP ----------
+# Normal ping (4 packets) must NOT trigger this.
+alert icmp any any -> $HOME_NET any (msg:"SENTINEL ICMP Echo flood - 30+ echo requests in 5s"; itype:8; threshold:type both, track by_src, count 30, seconds 5; classtype:attempted-dos; priority:3; sid:9000030; rev:1; metadata:created_by sentinel, scenario icmp;)
+alert http any any -> $HOME_NET any (msg:"SENTINEL HTTP Nmap Scripting Engine user-agent"; flow:to_server; http.user_agent; content:"Nmap Scripting Engine"; classtype:web-application-activity; priority:2; sid:9000040; rev:1; metadata:created_by sentinel, scenario scan;)
+alert http any any -> $HOME_NET any (msg:"SENTINEL HTTP Request to lab probe URI /sentinel-test/"; flow:to_server; http.uri; content:"/sentinel-test/"; startswith; classtype:web-application-activity; priority:4; sid:9000041; rev:1; metadata:created_by sentinel, scenario http;)

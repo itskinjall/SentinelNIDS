@@ -1,0 +1,61 @@
+%YAML 1.1
+---
+# SentinelNIDS - minimal Suricata overlay (tested target: Suricata 7.x on Kali).
+# Easiest use: keep the distro suricata.yaml and just copy the three settings below into it
+# (vars.HOME_NET, rule-files, outputs.eve-log). Or run this file directly (see docs/architecture.md).
+
+vars:
+  address-groups:
+    HOME_NET: "[192.168.56.0/24,10.77.0.0/24]"   # <-- EDIT: your lab subnets (VirtualBox host-only default: 192.168.56.0/24)
+    EXTERNAL_NET: "!$HOME_NET"
+  port-groups:
+    HTTP_PORTS: "80"
+
+default-rule-path: /var/lib/suricata/rules
+rule-files:
+  - /opt/SentinelNIDS/rules/local.rules      # <-- EDIT to the absolute path of your clone
+
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+# Heartbeat: SentinelNIDS treats a missing 'stats' event as "Suricata stopped".
+stats:
+  enabled: yes
+  interval: 8
+
+outputs:
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      community-id: yes
+      types:
+        - alert:
+            metadata: yes
+            payload: no          # keep payload out of logs (privacy / size)
+            packet: no
+        - dns
+        - http:
+            extended: yes
+        - tls
+        - flow
+        - anomaly
+        - stats:
+            totals: yes
+            threads: no
+
+default-log-dir: /var/log/suricata/
+
+af-packet:
+  - interface: eth1            # <-- EDIT: monitored interface (see scripts/lab_setup.sh)
+    cluster-id: 99
+    cluster-type: cluster_flow
+
+app-layer:
+  protocols:
+    dns:  { enabled: yes }
+    http: { enabled: yes }
+    tls:  { enabled: yes }
+
+detect:
+  profile: low

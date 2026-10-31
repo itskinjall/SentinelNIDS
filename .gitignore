@@ -1,0 +1,9 @@
+data/*.db
+data/*.db-*
+data/pcap/
+data/eve*.json
+!data/sample/
+__pycache__/
+*.pyc
+.venv/
+.env
